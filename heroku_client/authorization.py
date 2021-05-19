@@ -22,24 +22,27 @@ def get_api_key_from_env():
 
 
 def get_api_key():
-    try:
-        api_key = get_api_key_from_netrc()
-    except netrc.NetrcParseError as exc:
-        raise exceptions.HerokuException("Could not parse the .netrc file.") from exc
-    except FileNotFoundError as exc:
-        raise exceptions.HerokuException(
-            "Ensure that a .netrc file exists in the home directory."
-        ) from exc
-    else:
-        if api_key is None:
-            api_key = get_api_key_from_env()
-        # If api_key is still None, raise HerokuException
-        if api_key is None:
+    api_key = get_api_key_from_env()
+    if api_key is None:
+        # load from .netrc file
+        try:
+            api_key = get_api_key_from_netrc()
+        except netrc.NetrcParseError as exc:
             raise exceptions.HerokuException(
-                (
-                    "Could not load the API key to be used for making requests."
-                    " Ensure that you either have a .netrc file in your home directory"
-                    " or set your API key to the user environment variable HEROKU_API_KEY"
-                )
+                "Could not parse the .netrc file."
+            ) from exc
+        except FileNotFoundError:
+            raise exceptions.HerokuException(
+                "Ensure that a .netrc file exists in your home directory."
             )
-        return api_key
+        else:
+            # If api_key is still None, raise HerokuException
+            if api_key is None:
+                raise exceptions.HerokuException(
+                    (
+                        "Could not load the API key to be used for making requests."
+                        " Ensure that you either have a .netrc file in your home directory"
+                        " or set your API key to the user environment variable HEROKU_API_KEY."
+                    )
+                )
+    return api_key
