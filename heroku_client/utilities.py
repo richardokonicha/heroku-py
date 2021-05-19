@@ -1,5 +1,6 @@
 import requests
-from heroku_clent.exceptions import HerokuException
+import json
+from heroku_client.exceptions import HerokuException
 import re
 
 
@@ -8,9 +9,13 @@ def handle_error(response):
     try:
         response.raise_for_status()
     except requests.exceptions.RequestException as exc:
-        # Show error from API
-        print(response.json())
-        raise HerokuException(f"{exc.args}") from exc
+        try:
+            # Show error from API
+            print(response.json())
+        except json.JSONDecodeError:
+            pass
+        else:
+            raise HerokuException(f"{exc.args}") from exc
 
 
 def get_commit_sha(git_url, branch="main"):
@@ -23,7 +28,7 @@ def get_commit_sha(git_url, branch="main"):
 
     headers = {"Accept": "application/vnd.github.v3+json"}
     github_regex = re.compile(
-        r"(?:https?://)?(?:www.)?github.com/(?P<user>.*)/(?P<repo>.*)/?"
+        r"^(?:https?://)?(?:www\.)?github.com/(?P<user>.*)/(?P<repo>.*)/?$"
     )
     parser = github_regex.search(git_url)
     if parser is not None:
@@ -36,5 +41,5 @@ def get_commit_sha(git_url, branch="main"):
         data = response.json()
         return data["commit"]["sha"]
     raise ValueError(
-        "Improperly configured GitHub URL. Check to see the link is correct"
+        "Improperly configured GitHub URL. Check to see the repository URL is correct and is a public repository."
     )
