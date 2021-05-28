@@ -1,6 +1,6 @@
 import requests
 import json
-from heroku_client.exceptions import HerokuException
+from .exceptions import HerokuException
 import re
 
 
@@ -11,11 +11,11 @@ def handle_error(response):
     except requests.exceptions.RequestException as exc:
         try:
             # Show error from API
-            print(response.json())
+            message = response.json()
         except json.JSONDecodeError:
-            pass
-        else:
             raise HerokuException(f"{exc.args}") from exc
+        else:
+            raise HerokuException(message) from exc
 
 
 def get_commit_sha(git_url, branch="main"):

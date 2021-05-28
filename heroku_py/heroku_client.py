@@ -1,8 +1,9 @@
 import requests
 import re
-from heroku_client.constants import HEROKU_API_URL
-from heroku_client import authorization
-from heroku_clent.utilities import get_commit_sha, handle_error
+import time
+from .constants import HEROKU_API_URL
+from . import authorization
+from .utilities import get_commit_sha, handle_error
 
 
 class HerokuClient:
@@ -58,7 +59,7 @@ class HerokuClient:
         _headers["Content-Type"] = "application/json"
 
         response = requests.delete(
-            f"{HEROKU_API_URL}/{app_name_or_id}", headers=self._headers
+            f"{HEROKU_API_URL}/{app_name_or_id}", headers=_headers
         )
         handle_error(response)
         return response.json()
@@ -71,7 +72,9 @@ class HerokuClient:
         handle_error(response)
         return response.json()
 
-    def build_from_source(self, git_url, app_name_or_id, branch="main", version=None):
+    def build_from_git(
+        self, git_url, app_name_or_id, branch="main", version=None, delay=1.5
+    ):
         """
         git_url => github repository url of the source code.
         app_name_or_id => the application's name or id on Heroku. Use the `get_app_info` utility
@@ -80,6 +83,8 @@ class HerokuClient:
         version => A piece of metadata that you use to track what version of your
                     source code originated this build. If version is not specified,
                     will use the commit hash from the git_url as the version.
+        delay => How long it takes in seconds to get the build status change from
+                `pending` to `succeeded` or `failed`.
         ==========================================================================
 
         This will cause Heroku to fetch the source tarball, unpack it and start a
@@ -105,4 +110,19 @@ class HerokuClient:
             json=payload,
         )
         handle_error(response)
-        return response.json()
+        build_details = response.json()
+        # Poll the API until app status changes from pending to either "succeeded" or "failed"
+        status = build_details["status"]
+        app_id = build_details["app"]["id"]
+        build_id = build_details["id"]
+
+        while status == "pending":
+            time.sleep(delay)
+            response = requests.get(
+                f"{HEROKU_API_URL}/{app_id}/builds/{build_id}", headers=self.headers
+            )
+            handle_error(response)
+            build_details = response.json()
+            status = build_details["status"]
+
+        return build_details
