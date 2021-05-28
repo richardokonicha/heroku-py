@@ -1,7 +1,7 @@
 import netrc
 import os
-from heroku_client.constants import HEROKU_API_BASE, HEROKU_API_KEY
-from heroku_client import exceptions
+from .constants import HEROKU_API_BASE, HEROKU_API_KEY
+from . import exceptions
 
 
 def get_api_key_from_netrc():
@@ -31,10 +31,10 @@ def get_api_key():
             raise exceptions.HerokuException(
                 "Could not parse the .netrc file."
             ) from exc
-        except FileNotFoundError:
+        except FileNotFoundError as exc:
             raise exceptions.HerokuException(
                 "Ensure that a .netrc file exists in your home directory."
-            )
+            ) from exc
         else:
             # If api_key is still None, raise HerokuException
             if api_key is None:
