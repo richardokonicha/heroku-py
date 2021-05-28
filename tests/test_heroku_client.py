@@ -7,7 +7,7 @@ from heroku_py.heroku_client import HerokuClient
 
 hk = HerokuClient()
 git_url = "https://github.com/elfkuzco/heroku-py-testing-repo"
-repo_sha = str(hash(git_url))
+repo_sha = str(hash(git_url)).strip("-")
 app_name = "wonder-beetle-" + repo_sha[:6]
 
 

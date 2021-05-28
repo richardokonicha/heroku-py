@@ -4,6 +4,7 @@ import time
 from .constants import HEROKU_API_URL
 from . import authorization
 from .utilities import get_commit_sha, handle_error
+from .exceptions import HerokuException
 
 
 class HerokuClient:
@@ -72,37 +73,51 @@ class HerokuClient:
         handle_error(response)
         return response.json()
 
-    def build_from_git(
-        self, git_url, app_name_or_id, branch="main", version=None, delay=1.5
+    def update_app(self, app_name_or_id, *, new_name=None, maintenance=None):
+        """
+        Update an existing app.
+            new_name: The new name for the app.
+            maintenance: A boolean indicating whether to put the app in maintenance mode.
+        """
+        payload = {}
+        if new_name is not None:
+            payload["name"] = new_name
+        if maintenance is not None:
+            if not isinstance(maintenance, bool):
+                raise TypeError(
+                    f"maintenance expected to be of type 'bool' but got {type(maintenance)}"
+                )
+            payload["maintenance"] = maintenance
+
+        if payload.keys():
+            response = requests.patch(
+                f"{HEROKU_API_URL}/{app_name_or_id}", headers=self.headers, json=payload
+            )
+            handle_error(response)
+            return response.json()
+        else:
+            raise HerokuException("Update operation cancelled as no data supplied.")
+
+    def build_from_source(
+        self, app_name_or_id, source_url, version=None, delay=1.5, sha256_checksum=None
     ):
         """
-        git_url => github repository url of the source code.
-        app_name_or_id => the application's name or id on Heroku. Use the `get_app_info` utility
-                            to get the application's details.
-        branch => the git branch to get the source code from. Defaults to `main`.
+        Creates a new build of an existing app.
+
+        app_name_or_id => the application's name or id on Heroku.
+        source_url => URL where gzipped tar archive of source code for build was downloaded.
         version => A piece of metadata that you use to track what version of your
-                    source code originated this build. If version is not specified,
-                    will use the commit hash from the git_url as the version.
+                    source code originated this build.
         delay => How long it takes in seconds to get the build status change from
                 `pending` to `succeeded` or `failed`.
-        ==========================================================================
-
-        This will cause Heroku to fetch the source tarball, unpack it and start a
-        build, just as if the source code had been pushed to Heroku using git. If
-        the build completes successfully, the resulting slug will be deployed
-        automatically to the app in a new release.
-
-        (https://devcenter.heroku.com/articles/build-and-release-using-the-api#creating-builds)
-        ==========================================================================
+        sha256_checksum => an optional checksum of the gzipped tarball for verifying its integrity.
         """
 
-        payload = {"source_blob": {"url": f"{git_url}/tarball/{branch}"}}
-
+        payload = {"source_blob": {"url": source_url}}
         if version is not None:
             payload["source_blob"]["version"] = version
-        else:
-            version = get_commit_sha(git_url, branch)
-            payload["source_blob"]["version"] = version
+        if sha256_checksum is not None:
+            payload["source_blob"]["checksum"] = sha256_checksum
 
         response = requests.post(
             f"{HEROKU_API_URL}/{app_name_or_id}/builds",
@@ -126,3 +141,35 @@ class HerokuClient:
             status = build_details["status"]
 
         return build_details
+
+    def build_from_git(
+        self, app_name_or_id, git_url, branch="main", version=None, delay=1.5
+    ):
+        """
+        app_name_or_id => the application's name or id on Heroku.
+        git_url => github repository url of the source code.
+        branch => the git branch to get the source code from. Defaults to `main`.
+        version => A piece of metadata that you use to track what version of your
+                    source code originated this build. If version is not specified,
+                    will use the commit hash from the git_url as the version.
+        delay => How long it takes in seconds to get the build status change from
+                `pending` to `succeeded` or `failed`.
+        ==========================================================================
+
+        This will cause Heroku to fetch the source tarball, unpack it and start a
+        build, just as if the source code had been pushed to Heroku using git. If
+        the build completes successfully, the resulting slug will be deployed
+        automatically to the app in a new release.
+
+        (https://devcenter.heroku.com/articles/build-and-release-using-the-api#creating-builds)
+        ==========================================================================
+        """
+
+        tarball_url = f"{git_url}/tarball/{branch}"
+
+        if version is None:
+            version = get_commit_sha(git_url, branch)
+
+        return self.build_from_source(
+            app_name_or_id, tarball_url, version=version, delay=delay
+        )
