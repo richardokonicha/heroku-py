@@ -99,7 +99,7 @@ class HerokuClient:
             raise HerokuException("Update operation cancelled as no data supplied.")
 
     def build_from_source(
-        self, app_name_or_id, source_url, version=None, delay=1.5, sha256_checksum=None
+        self, app_name_or_id, source_url, version=None, delay=1.5, sha256=None
     ):
         """
         Creates a new build of an existing app.
@@ -110,14 +110,14 @@ class HerokuClient:
                     source code originated this build.
         delay => How long it takes in seconds to get the build status change from
                 `pending` to `succeeded` or `failed`.
-        sha256_checksum => an optional checksum of the gzipped tarball for verifying its integrity.
+        sha256 => an optional SHA256 checksum of the gzipped tarball for verifying its integrity.
         """
 
         payload = {"source_blob": {"url": source_url}}
         if version is not None:
             payload["source_blob"]["version"] = version
-        if sha256_checksum is not None:
-            payload["source_blob"]["checksum"] = sha256_checksum
+        if sha256 is not None:
+            payload["source_blob"]["checksum"] = "SHA256:" + sha256
 
         response = requests.post(
             f"{HEROKU_API_URL}/{app_name_or_id}/builds",
