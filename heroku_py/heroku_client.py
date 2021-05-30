@@ -13,7 +13,7 @@ class HerokuClient:
         Create an instance of a heroku client for making API requests.
         If api_key is None, will try to load API key from .netrc file in
         current user's home directory or load from environment variable
-        HEROKU_API_KEY.
+        $HEROKU_API_KEY.
         """
 
         if api_key is None:
@@ -28,7 +28,9 @@ class HerokuClient:
 
     def create_app(self, app_name):
         """
-        app_name should conform to the pattern as specified in the Heroku API.
+        Creates an app on Heroku.
+        app_name should conform to the pattern ^[a-z][a-z0-9-]{1,28}[a-z0-9]$ as
+        specified in the Heroku API.
         Returns the response from the server.
         """
 
@@ -104,13 +106,13 @@ class HerokuClient:
         """
         Creates a new build of an existing app.
 
-        app_name_or_id => the application's name or id on Heroku.
-        source_url => URL where gzipped tar archive of source code for build was downloaded.
-        version => A piece of metadata that you use to track what version of your
+        app_name_or_id: the application's name or id on Heroku.
+        source_url: URL where gzipped tar archive of source code for build was downloaded.
+        version: A piece of metadata that you use to track what version of your
                     source code originated this build.
-        delay => How long it takes in seconds to get the build status change from
-                `pending` to `succeeded` or `failed`.
-        sha256 => an optional SHA256 checksum of the gzipped tarball for verifying its integrity.
+        delay: How long it takes in seconds to get the build status change from
+                "pending" to "succeeded" or "failed".
+        sha256: an optional SHA256 checksum of the gzipped tarball for verifying its integrity.
         """
 
         payload = {"source_blob": {"url": source_url}}
@@ -146,23 +148,14 @@ class HerokuClient:
         self, app_name_or_id, git_url, branch="main", version=None, delay=1.5
     ):
         """
-        app_name_or_id => the application's name or id on Heroku.
-        git_url => github repository url of the source code.
-        branch => the git branch to get the source code from. Defaults to `main`.
-        version => A piece of metadata that you use to track what version of your
+        app_name_or_id: the application's name or id on Heroku.
+        git_url: github repository url of the source code.
+        branch: the git branch to get the source code from. Defaults to `main`.
+        version: A piece of metadata that you use to track what version of your
                     source code originated this build. If version is not specified,
                     will use the commit hash from the git_url as the version.
-        delay => How long it takes in seconds to get the build status change from
-                `pending` to `succeeded` or `failed`.
-        ==========================================================================
-
-        This will cause Heroku to fetch the source tarball, unpack it and start a
-        build, just as if the source code had been pushed to Heroku using git. If
-        the build completes successfully, the resulting slug will be deployed
-        automatically to the app in a new release.
-
-        (https://devcenter.heroku.com/articles/build-and-release-using-the-api#creating-builds)
-        ==========================================================================
+        delay: How long it takes in seconds to get the build status change from
+                "pending" to "succeeded" or "failed".
         """
 
         tarball_url = f"{git_url}/tarball/{branch}"

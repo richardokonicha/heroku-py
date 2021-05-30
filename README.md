@@ -10,12 +10,14 @@ A Python3 wrapper around the [v3 Heroku API](https://devcenter.heroku.com/catego
 # DESCRIPTION
 
 heroku-py is a Python3 wrapper around some of the [v3 Heroku API](https://devcenter.heroku.com/categories/platform-api) endpoints.
+
 heroku-py only exposes most of the common endpoints that you probably use
 everyday during development such as performing CRUD operations on an app and deploying
-builds of versions of your source code, especially using Git.
+builds of versions of your source code, especially hosted on GitHub.
 
 The [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli) contains much
-more powerful features for the customization of your apps.
+more powerful features for the customization of your apps and heroku-py does not
+attempt to serve as a replacement.
 
 # INSTALLATION
 
