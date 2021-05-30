@@ -42,7 +42,7 @@ def get_api_key():
                     (
                         "Could not load the API key to be used for making requests."
                         " Ensure that you either have a .netrc file in your home directory"
-                        " or set your API key to the user environment variable HEROKU_API_KEY."
+                        " or set your API key to the user environment variable $HEROKU_API_KEY."
                     )
                 )
     return api_key
